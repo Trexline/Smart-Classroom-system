@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    /* 1. Main Container - Wide enough for 4 columns */
+    .history-container {
+        max-width: 1200px; 
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+
+    .session-group { margin-bottom: 50px; }
+    
+    .session-header { 
+        background: #2c3e50; color: #fff; padding: 15px 25px; 
+        border-radius: 12px; display: flex; justify-content: space-between; align-items: center;
+        border-left: 6px solid #00ff88;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    
+    .archive-header { 
+        background: rgba(44, 62, 80, 0.4); color: #bbb; border-left: 6px solid #444;
+    }
+
+    /* 2. FIXED 4-COLUMN GRID */
+    .gallery { 
+        display: grid; 
+        /* Forces exactly 4 columns on desktop */
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 15px; 
+        margin-top: 20px;
+    }
+    
+    .history-card { 
+        background: #1e1e1e; 
+        padding: 8px; 
+        border-radius: 12px; 
+        border: 1px solid #333; 
+        transition: transform 0.2s ease, border-color 0.2s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .history-card:hover { 
+        transform: translateY(-5px); 
+        border-color: #00ff88; 
+    }
+
+    /* 3. Image Sizing - Keeps them uniform */
+    .image-wrapper {
+        width: 100%;
+        aspect-ratio: 4 / 3; 
+        overflow: hidden;
+        border-radius: 8px;
+        background: #000;
+    }
+
+    .history-card img { 
+        width: 100%; 
+        height: 100%;
+        object-fit: cover; 
+        display: block; 
+    }
+    
+    .timestamp-box { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center;
+        padding: 8px 2px 2px 2px;
+        font-size: 0.8em; 
+        color: #888; 
+    }
+
+    .time-label { 
+        color: #00ff88; 
+        font-weight: bold;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 992px) {
+        .gallery { grid-template-columns: repeat(2, 1fr); } /* 2 columns for tablets */
+    }
+
+    @media (max-width: 600px) {
+        .gallery { grid-template-columns: 1fr; } /* 1 column for small phones */
+        .session-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    }
+</style>
+
+<div class="history-container">
+    <nav style="margin: 20px 0;">
+        <a href="/main" style="text-decoration: none; color: #00ff88; font-weight: bold; font-size: 1.1em; display: inline-flex; align-items: center; gap: 5px;">
+            <span>←</span> Back to Dashboard
+        </a>
+    </nav>
+
+    <h2 style="color: #fff; margin-bottom: 30px; font-size: 1.8em;">Activity History</h2>
+
+    {% if sessions %}
+        {% for session in sessions %}
+        <div class="session-group">
+            <div class="session-header {% if session.id != current_id %}archive-header{% endif %}">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span style="font-size: 1.1em;">
+                        {% if session.id == current_id %}
+                            🟢 <strong>Current Session</strong>
+                        {% else %}
+                            📁 Archive: Session #{{ session.id }}
+                        {% endif %}
+                    </span>
+                    <span style="font-size: 0.85em; opacity: 0.7;">📅 {{ session.display_time }}</span>
+                </div>
+                <span style="font-size: 0.9em; background: rgba(0,0,0,0.3); padding: 6px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                    {{ session.captures|length }} Events
+                </span>
+            </div>
+
+            <div class="gallery">
+                {% for c in session.captures %}
+                <div class="history-card">
+                    <div class="image-wrapper">
+                        <img src="{{ url_for('static', filename='captures/' + c.filename) }}" alt="Motion">
+                    </div>
+                    <div class="timestamp-box">
+                        <span>{{ c.timestamp.strftime('%d %b %Y') }}</span>
+                        <span class="time-label">{{ c.timestamp.strftime('%H:%M:%S') }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 100px 20px; color: #666; border: 2px dashed #333; border-radius: 20px;">
+            <h3 style="margin-bottom: 10px; color: #888;">No motion events recorded.</h3>
+            <p>Captures will appear here once motion is detected.</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    setTimeout(() => { location.reload(); }, 30000);
+</script>
+{% endblock %}

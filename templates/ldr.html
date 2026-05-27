@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4 px-0 px-md-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0 text-dark">LDR Ambient Light Monitor</h1>
+            <p class="text-muted small mb-0">Logged in as: <span class="fw-bold text-primary">{{ session.username }}</span></p>
+        </div>
+        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2">
+            <i class="bi bi-broadcast me-1"></i> Live
+        </span>
+    </div>
+
+    <div class="row g-3">
+
+        <!-- Gauge Card -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+
+                    <!-- Value -->
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <h6 class="text-muted text-uppercase small fw-bold mb-1">Light Intensity</h6>
+                            <h2 class="fw-bold mb-0" id="ldr-value">-- %</h2>
+                        </div>
+                        <div style="width:52px; height:52px; background:#fff3cd; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                            <i class="bi bi-brightness-high text-warning fs-3"></i>
+                        </div>
+                    </div>
+
+                    <!-- Visual bar -->
+                    <div>
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>0% (Dark)</span>
+                            <span>50%</span>
+                            <span>100% (Bright)</span>
+                        </div>
+                        <div class="position-relative" style="height:36px; background:#f1f3f5; border-radius:8px; border:1px solid #dee2e6; overflow:hidden;">
+                            <div id="ldr-bar"
+                                 style="position:absolute; left:0; top:0; height:100%; width:0%;
+                                        background:linear-gradient(90deg,#ffc107,#fd7e14);
+                                        border-radius:8px; transition: width 0.4s ease-in-out;">
+                            </div>
+                            <div id="ldr-label"
+                                 style="position:absolute; top:50%; transform:translateY(-50%);
+                                        left:8px; font-size:0.72rem; font-weight:bold;
+                                        color:#212529; pointer-events:none;">
+                                --
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session Aggregates — derived from last 20 readings -->
+                    <div class="row g-2 mt-2">
+                        <div class="col-4">
+                            <div class="bg-light p-2 rounded text-center">
+                                <div class="text-muted small" style="font-size:0.7rem;">MIN</div>
+                                <div class="fw-bold small" id="ldr-min">--</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light p-2 rounded text-center">
+                                <div class="text-muted small" style="font-size:0.7rem;">AVG</div>
+                                <div class="fw-bold small" id="ldr-avg">--</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light p-2 rounded text-center">
+                                <div class="text-muted small" style="font-size:0.7rem;">MAX</div>
+                                <div class="fw-bold small" id="ldr-max">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status badge -->
+                    <div class="mt-3 p-2 rounded bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Condition:</span>
+                            <span id="ldr-status" class="badge rounded-pill bg-secondary">Waiting...</span>
+                        </div>
+                    </div>
+
+                    <!-- Last updated -->
+                    <p class="text-muted small mt-2 mb-0 text-end">
+                        Updated: <span id="last-updated">--</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Card -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-graph-up text-warning me-2"></i>Light Trend (Last 20 Readings)
+                    </h5>
+                </div>
+                <div class="card-body" style="position:relative; height:240px;">
+                    <!-- Empty state — hidden once data arrives -->
+                    <div id="chart-empty"
+                         class="d-flex flex-column align-items-center justify-content-center h-100 text-muted"
+                         style="position:absolute; inset:0;">
+                        <i class="bi bi-hourglass-split fs-2 mb-2 opacity-50"></i>
+                        <span class="small">Waiting for sensor data…</span>
+                    </div>
+                    <canvas id="ldrChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Recent Readings Table -->
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-table text-warning me-2"></i>Recent Readings
+                    </h5>
+                    <span class="badge bg-light text-muted border" id="reading-count">0 readings</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">#</th>
+                                    <th>Light Level</th>
+                                    <th>Bar</th>
+                                    <th>Condition</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ldr-table-body">
+                                <tr id="table-empty-row">
+                                    <td colspan="4" class="text-center text-muted py-4 small">
+                                        <i class="bi bi-hourglass-split me-1"></i>No readings yet
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .blink { animation: blinker 1s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0; } }
+    #ldrChart { display: none; } /* hidden until data arrives */
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // ── Chart setup ────────────────────────────────────────────────
+    const ctx = document.getElementById('ldrChart').getContext('2d');
+    const ldrChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Light Intensity (%)',
+                data: [],
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.15)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            layout: { padding: 0 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.y}%`
+                    }
+                }
+            },
+            scales: {
+                x: { display: false },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        maxTicksLimit: 5,
+                        callback: v => v + '%'
+                    }
+                }
+            }
+        }
+    });
+
+    // Keeps a rolling list of readings for the table
+    let tableReadings = [];
+
+    // ── Condition helper ───────────────────────────────────────────
+    function getCondition(pct) {
+        if (pct > 75) return { label: '☀️ Bright Light',  cls: 'bg-warning text-dark' };
+        if (pct > 40) return { label: '🌤 Indoor Light',  cls: 'bg-success'            };
+        if (pct > 15) return { label: '🌥 Dim Ambient',   cls: 'bg-info text-dark'     };
+        return              { label: '🌑 Dark Room',      cls: 'bg-dark text-white'    };
+    }
+
+    // ── Main UI update ─────────────────────────────────────────────
+    function updateUI(percentage, history) {
+        if (percentage === null || percentage === undefined) return;
+
+        // ── Stats derived from the history window (last 20 readings)
+        // This avoids infinite drift from in-memory accumulators
+        const data = (history && history.length) ? history : [percentage];
+        const minVal = Math.min(...data);
+        const maxVal = Math.max(...data);
+        const avgVal = Math.round(data.reduce((a, b) => a + b, 0) / data.length);
+
+        document.getElementById('ldr-min').textContent = minVal + '%';
+        document.getElementById('ldr-max').textContent = maxVal + '%';
+        document.getElementById('ldr-avg').textContent = avgVal + '%';
+
+        // ── Main metric
+        document.getElementById('ldr-value').textContent = percentage + ' %';
+
+        // ── Progress bar
+        document.getElementById('ldr-bar').style.width   = percentage + '%';
+        document.getElementById('ldr-label').textContent = percentage + '%';
+
+        // ── Status badge
+        const { label, cls } = getCondition(percentage);
+        const statusEl = document.getElementById('ldr-status');
+        statusEl.textContent = label;
+        statusEl.className   = `badge rounded-pill ${cls}`;
+
+        // ── Timestamp
+        document.getElementById('last-updated').textContent =
+            new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // ── Chart — show canvas, hide empty state
+        if (data.length > 0) {
+            document.getElementById('chart-empty').style.display = 'none';
+            document.getElementById('ldrChart').style.display    = 'block';
+            ldrChart.data.labels               = data.map((_, i) => i + 1);
+            ldrChart.data.datasets[0].data     = data;
+            ldrChart.update('none');
+        }
+
+        // ── Rolling table (newest first, cap at 20 rows)
+        tableReadings.unshift({ pct: percentage, time: new Date() });
+        if (tableReadings.length > 20) tableReadings.pop();
+        renderTable();
+    }
+
+    // ── Table renderer ─────────────────────────────────────────────
+    function renderTable() {
+        const tbody = document.getElementById('ldr-table-body');
+        document.getElementById('reading-count').textContent =
+            tableReadings.length + ' reading' + (tableReadings.length !== 1 ? 's' : '');
+
+        if (!tableReadings.length) return;
+
+        tbody.innerHTML = tableReadings.map((r, i) => {
+            const { label, cls } = getCondition(r.pct);
+            const barWidth = r.pct;
+            return `
+            <tr>
+                <td class="ps-4 text-muted small">${tableReadings.length - i}</td>
+                <td class="fw-bold">${r.pct}%</td>
+                <td style="min-width:140px;">
+                    <div style="height:14px; background:#f1f3f5; border-radius:4px; overflow:hidden;">
+                        <div style="height:100%; width:${barWidth}%;
+                                    background:linear-gradient(90deg,#ffc107,#fd7e14);
+                                    border-radius:4px; transition:width 0.3s;">
+                        </div>
+                    </div>
+                </td>
+                <td><span class="badge rounded-pill ${cls}">${label}</span></td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ── Polling ────────────────────────────────────────────────────
+    async function fetchData() {
+        try {
+            const res = await fetch('/api/sensor_live');
+            if (!res.ok) return;
+            const d = await res.json();
+            // ldr value from backend is already stored as % (0–100)
+            updateUI(d.sensor?.ldr, d.ldr_history);
+        } catch (e) {
+            console.warn('Fetch failed:', e);
+        }
+    }
+
+    fetchData();
+    setInterval(fetchData, 1000);
+</script>
+{% endblock %}

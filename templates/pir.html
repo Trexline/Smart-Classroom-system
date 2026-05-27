@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4 px-0 px-md-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0 text-dark">PIR Motion Monitor</h1>
+            <p class="text-muted small mb-0">Logged in as: <span class="fw-bold text-primary">{{ session.username }}</span></p>
+        </div>
+
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+            <i class="bi bi-broadcast me-1"></i> Live
+        </span>
+    </div>
+
+    <div class="row g-3">
+
+        <!-- PIR Status Card -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+
+                    <!-- Status -->
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <h6 class="text-muted text-uppercase small fw-bold mb-1">
+                                Motion Status
+                            </h6>
+
+                            <h2 class="fw-bold mb-0" id="pir-value">
+                                No Motion
+                            </h2>
+                        </div>
+
+                        <div id="pir-icon-box"
+                             style="width:52px; height:52px; background:#f1f3f5; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:0.3s;">
+                            <i id="pir-icon"
+                               class="bi bi-person-walking text-secondary fs-3"></i>
+                        </div>
+                    </div>
+
+                    <!-- Visual Indicator -->
+                    <div>
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>Inactive</span>
+                            <span>Monitoring</span>
+                            <span>Active</span>
+                        </div>
+
+                        <div class="position-relative"
+                             style="height:36px; background:#f1f3f5; border-radius:8px; border:1px solid #dee2e6; overflow:hidden;">
+
+                            <div id="pir-bar"
+                                 style="position:absolute; left:0; top:0; height:100%; width:0%; background:linear-gradient(90deg,#ffc107,#dc3545); border-radius:8px; transition: width 0.4s ease-in-out;">
+                            </div>
+
+                            <div id="pir-label"
+                                 style="position:absolute; top:50%; transform:translateY(-50%); left:8px; font-size:0.75rem; font-weight:bold; color:#fff;">
+                                Waiting...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Badge -->
+                    <div class="mt-3 p-2 rounded bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Sensor State:</span>
+
+                            <span id="pir-status"
+                                  class="badge rounded-pill bg-secondary">
+                                Waiting...
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Last Updated -->
+                    <p class="text-muted small mt-2 mb-0 text-end">
+                        Updated:
+                        <span id="last-updated">--</span>
+                    </p>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- PIR Activity Chart -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-graph-up text-danger me-2"></i>
+                        PIR Activity (Last 20 Readings)
+                    </h5>
+                </div>
+
+                <div class="card-body"
+                     style="position:relative; height:220px;">
+                    <canvas id="pirChart"></canvas>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .blink {
+        animation: blinker 1s linear infinite;
+    }
+
+    @keyframes blinker {
+        50% {
+            opacity: 0;
+        }
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Chart Setup
+    const ctx = document.getElementById('pirChart').getContext('2d');
+
+    const pirChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'PIR Motion',
+                data: [],
+                borderColor: '#dc3545',
+                backgroundColor: '#dc354522',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 2
+            }]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            animation: {
+                duration: 300
+            },
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+
+            scales: {
+                x: {
+                    display: false
+                },
+
+                y: {
+                    beginAtZero: true,
+                    max: 1,
+
+                    ticks: {
+                        stepSize: 1,
+
+                        callback: function(value) {
+                            return value === 1 ? 'Motion' : 'Idle';
+                        }
+                    },
+
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Update UI
+    function updateUI(pir, history) {
+
+        const motion = pir === 1;
+
+        const valueEl = document.getElementById('pir-value');
+        const statusEl = document.getElementById('pir-status');
+        const barEl = document.getElementById('pir-bar');
+        const labelEl = document.getElementById('pir-label');
+        const iconBox = document.getElementById('pir-icon-box');
+        const icon = document.getElementById('pir-icon');
+
+        if (motion) {
+
+            valueEl.textContent = 'Motion Detected';
+
+            statusEl.textContent = 'ACTIVE';
+            statusEl.className =
+                'badge rounded-pill bg-danger blink';
+
+            barEl.style.width = '100%';
+
+            labelEl.textContent = 'Motion';
+
+            iconBox.style.background = '#fde2e1';
+
+            icon.className =
+                'bi bi-person-walking text-danger fs-3';
+
+        } else {
+
+            valueEl.textContent = 'No Motion';
+
+            statusEl.textContent = 'Idle';
+            statusEl.className =
+                'badge rounded-pill bg-success';
+
+            barEl.style.width = '10%';
+
+            labelEl.textContent = 'Idle';
+
+            iconBox.style.background = '#f1f3f5';
+
+            icon.className =
+                'bi bi-person-walking text-secondary fs-3';
+        }
+
+        // Time
+        const now = new Date();
+
+        document.getElementById('last-updated').textContent =
+            now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+        // Chart
+        if (history && history.length) {
+
+            pirChart.data.labels =
+                history.map((_, i) => i + 1);
+
+            pirChart.data.datasets[0].data =
+                history;
+
+            pirChart.update('none');
+        }
+    }
+
+    // Fetch Data
+    async function fetchData() {
+
+        try {
+
+            const res =
+                await fetch('/api/sensor_live');
+
+            if (!res.ok) return;
+
+            const d = await res.json();
+
+            updateUI(
+                d.sensor?.pir,
+                d.pir_history
+            );
+
+        } catch (e) {
+
+            console.warn('Fetch failed:', e);
+        }
+    }
+
+    // Start
+    fetchData();
+
+    setInterval(fetchData, 1000);
+</script>
+{% endblock %}

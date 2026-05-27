@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Classroom Hub{% endblock %}
+
+{% block content %}
+<div class="container col-xxl-8 px-4 py-5">
+    <div class="row flex-lg-row-reverse align-items-center g-5 py-5">
+        <div class="col-10 col-sm-8 col-lg-6">
+            <div class="display-1 text-center text-primary">
+                <!-- Using a door/room icon instead of a CPU -->
+                <i class="bi bi-door-open" style="font-size: 10rem;"></i>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <h1 class="display-5 fw-bold lh-1 mb-3">Classroom Hub</h1>
+            <p class="lead">A simple way to monitor classroom conditions and student attendance in real-time. Keep track of temperature, lighting, and activity to ensure a better learning environment.</p>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-4">
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4 me-md-2">
+                    Sign In
+                </a>
+                <a href="{{ url_for('signup') }}" class="btn btn-outline-secondary btn-lg px-4">
+                    Create Account
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simplified Feature Cards -->
+    <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+        <div class="feature col text-center">
+            <div class="feature-icon d-inline-flex align-items-center justify-content-center fs-2 mb-3">
+                <i class="bi bi-people text-primary"></i>
+            </div>
+            <h3 class="fs-2">Attendance</h3>
+            <p>Automatically track when people are in the room using smart sensors.</p>
+        </div>
+        <div class="feature col text-center">
+            <div class="feature-icon d-inline-flex align-items-center justify-content-center fs-2 mb-3">
+                <i class="bi bi-sun text-primary"></i>
+            </div>
+            <h3 class="fs-2">Environment</h3>
+            <p>Monitor room comfort, including temperature and lighting levels.</p>
+        </div>
+        <div class="feature col text-center">
+            <div class="feature-icon d-inline-flex align-items-center justify-content-center fs-2 mb-3">
+                <i class="bi bi-shield-check text-primary"></i>
+            </div>
+            <h3 class="fs-2">Simple & Secure</h3>
+            <p>Your data is stored safely and accessible only to authorized users.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

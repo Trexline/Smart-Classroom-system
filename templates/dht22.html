@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% block title %}DHT22 Climate Sensor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-0 px-md-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0 text-dark">DHT22 Climate Monitor</h1>
+            <p class="text-muted small mb-0">Logged in as: <span class="fw-bold text-primary">{{ session.username }}</span></p>
+        </div>
+
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+            <i class="bi bi-broadcast me-1"></i> Live
+        </span>
+    </div>
+
+    <div class="row g-3">
+
+        <!-- Temperature Card -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h6 class="text-muted text-uppercase small fw-bold mb-1">
+                                Temperature
+                            </h6>
+
+                            <h2 class="fw-bold mb-0 text-danger" id="temp-value">
+                                -- °C
+                            </h2>
+                        </div>
+
+                        <div style="width:55px;height:55px;background:#ffe5e5;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                            <i class="bi bi-thermometer-half text-danger fs-3"></i>
+                        </div>
+                    </div>
+
+                    <!-- Temperature Progress -->
+                    <div class="mb-3">
+                        <div class="progress" style="height:12px;">
+                            <div id="temp-bar"
+                                 class="progress-bar bg-danger"
+                                 style="width:0%">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted small">Condition</span>
+                        <span id="temp-status" class="badge rounded-pill bg-secondary">
+                            Waiting...
+                        </span>
+                    </div>
+
+                    <!-- Min Max -->
+                    <div class="row text-center g-2">
+                        <div class="col-6">
+                            <div class="bg-light rounded p-3">
+                                <div class="fw-bold text-primary" id="temp-min">--</div>
+                                <small class="text-muted">Min °C</small>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="bg-light rounded p-3">
+                                <div class="fw-bold text-danger" id="temp-max">--</div>
+                                <small class="text-muted">Max °C</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart -->
+                    <div class="mt-4" style="height:180px;">
+                        <canvas id="tempChart"></canvas>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Humidity Card -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h6 class="text-muted text-uppercase small fw-bold mb-1">
+                                Humidity
+                            </h6>
+
+                            <h2 class="fw-bold mb-0 text-info" id="hum-value">
+                                -- %
+                            </h2>
+                        </div>
+
+                        <div style="width:55px;height:55px;background:#e8f7ff;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                            <i class="bi bi-droplet-fill text-info fs-3"></i>
+                        </div>
+                    </div>
+
+                    <!-- Humidity Progress -->
+                    <div class="mb-3">
+                        <div class="progress" style="height:12px;">
+                            <div id="hum-bar"
+                                 class="progress-bar bg-info"
+                                 style="width:0%">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted small">Condition</span>
+                        <span id="hum-status" class="badge rounded-pill bg-secondary">
+                            Waiting...
+                        </span>
+                    </div>
+
+                    <!-- Min Max -->
+                    <div class="row text-center g-2">
+                        <div class="col-6">
+                            <div class="bg-light rounded p-3">
+                                <div class="fw-bold text-primary" id="hum-min">--</div>
+                                <small class="text-muted">Min %</small>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="bg-light rounded p-3">
+                                <div class="fw-bold text-info" id="hum-max">--</div>
+                                <small class="text-muted">Max %</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart -->
+                    <div class="mt-4" style="height:180px;">
+                        <canvas id="humChart"></canvas>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Comfort Card -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                        <div>
+                            <h5 class="fw-bold mb-1">Comfort Index</h5>
+                            <p class="text-muted small mb-0">
+                                Room climate condition based on temperature and humidity
+                            </p>
+                        </div>
+
+                        <div class="text-end">
+                            <h3 class="fw-bold mb-2" id="comfort-text">
+                                Waiting...
+                            </h3>
+
+                            <span id="comfort-badge"
+                                  class="badge rounded-pill bg-secondary px-3 py-2">
+                                No Data
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    let tempMin = Infinity;
+    let tempMax = -Infinity;
+
+    let humMin = Infinity;
+    let humMax = -Infinity;
+
+    // Charts
+    function createChart(canvasId, color) {
+        return new Chart(document.getElementById(canvasId), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    borderColor: color,
+                    backgroundColor: color + '22',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        display: false
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    const tempChart = createChart('tempChart', '#dc3545');
+    const humChart  = createChart('humChart', '#0dcaf0');
+
+    // Temperature Status
+    function getTempStatus(t) {
+        if (t < 16) return ['Cold', 'bg-primary'];
+        if (t < 26) return ['Comfortable', 'bg-success'];
+        if (t < 32) return ['Warm', 'bg-warning text-dark'];
+        return ['Hot', 'bg-danger'];
+    }
+
+    // Humidity Status
+    function getHumStatus(h) {
+        if (h < 30) return ['Dry', 'bg-warning text-dark'];
+        if (h < 60) return ['Ideal', 'bg-success'];
+        if (h < 80) return ['Humid', 'bg-info text-dark'];
+        return ['Very Humid', 'bg-danger'];
+    }
+
+    // Comfort
+    function getComfort(t, h) {
+        if (t >= 22 && t <= 26 && h >= 40 && h <= 60) {
+            return ['Comfortable', 'bg-success'];
+        }
+
+        if (t > 30 || h > 75) {
+            return ['Uncomfortable', 'bg-danger'];
+        }
+
+        if (t < 18 || h < 30) {
+            return ['Too Cold / Dry', 'bg-primary'];
+        }
+
+        return ['Average', 'bg-warning text-dark'];
+    }
+
+    async function fetchData() {
+        try {
+            const res = await fetch('/api/sensor_live');
+
+            if (!res.ok) return;
+
+            const d = await res.json();
+
+            const temp = d.sensor?.temp;
+            const hum  = d.sensor?.hum;
+
+            // --- Temperature ---
+            if (temp !== null && temp !== undefined) {
+
+                document.getElementById('temp-value').textContent =
+                    temp.toFixed(1) + ' °C';
+
+                document.getElementById('temp-bar').style.width =
+                    Math.min((temp / 50) * 100, 100) + '%';
+
+                tempMin = Math.min(tempMin, temp);
+                tempMax = Math.max(tempMax, temp);
+
+                document.getElementById('temp-min').textContent =
+                    tempMin.toFixed(1);
+
+                document.getElementById('temp-max').textContent =
+                    tempMax.toFixed(1);
+
+                const [txt, cls] = getTempStatus(temp);
+
+                const el = document.getElementById('temp-status');
+
+                el.textContent = txt;
+                el.className = 'badge rounded-pill ' + cls;
+            }
+
+            // --- Humidity ---
+            if (hum !== null && hum !== undefined) {
+
+                document.getElementById('hum-value').textContent =
+                    hum.toFixed(1) + ' %';
+
+                document.getElementById('hum-bar').style.width =
+                    hum + '%';
+
+                humMin = Math.min(humMin, hum);
+                humMax = Math.max(humMax, hum);
+
+                document.getElementById('hum-min').textContent =
+                    humMin.toFixed(1);
+
+                document.getElementById('hum-max').textContent =
+                    humMax.toFixed(1);
+
+                const [txt, cls] = getHumStatus(hum);
+
+                const el = document.getElementById('hum-status');
+
+                el.textContent = txt;
+                el.className = 'badge rounded-pill ' + cls;
+            }
+
+            // --- Comfort ---
+            if (temp !== undefined && hum !== undefined) {
+
+                const [txt, cls] = getComfort(temp, hum);
+
+                document.getElementById('comfort-text').textContent = txt;
+
+                const badge = document.getElementById('comfort-badge');
+
+                badge.textContent = txt;
+                badge.className = 'badge rounded-pill px-3 py-2 ' + cls;
+            }
+
+            // --- Charts ---
+            const tempHistory = d.temp_history || [];
+            const humHistory  = d.hum_history || [];
+
+            tempChart.data.labels = tempHistory.map((_, i) => i + 1);
+            tempChart.data.datasets[0].data = tempHistory;
+            tempChart.update('none');
+
+            humChart.data.labels = humHistory.map((_, i) => i + 1);
+            humChart.data.datasets[0].data = humHistory;
+            humChart.update('none');
+
+        } catch (e) {
+            console.warn('Fetch failed:', e);
+        }
+    }
+
+    fetchData();
+    setInterval(fetchData, 1000);
+</script>
+{% endblock %}

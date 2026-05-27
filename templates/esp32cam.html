@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}ESP32-CAM Dashboard{% endblock %}
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #bec0c5; --surface: #f5f6fa; --border: #b4b7bb; --muted: #b8bec8;
+    --text: #dde4f0; --dim: #4e5870;
+    --red: #ff4757; --green: #2ed573; --blue: #4d9fff; --purple: #a855f7;
+    --mono: 'JetBrains Mono', monospace; --display: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .wrap { background: var(--bg); min-height: 100vh; padding: 28px 24px 48px; font-family: var(--display); color: var(--text); }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .title-label { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-bottom: 4px; }
+  .title-main  { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+  .live-pill { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; color: var(--red); background: #ff475718; border: 1px solid #ff475740; border-radius: 20px; padding: 5px 12px; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); animation: blink 1s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; position: relative; transition: border-color .2s; }
+  .card:hover { border-color: var(--muted); }
+  .card-body { padding: 20px; }
+  .card-top-red   { position: absolute; top:0;left:0;right:0;height:2px;background:var(--red);border-radius:18px 18px 0 0;z-index:1; }
+  .card-top-green { position: absolute; top:0;left:0;right:0;height:2px;background:var(--green);border-radius:18px 18px 0 0; }
+  .card-top-blue  { position: absolute; top:0;left:0;right:0;height:2px;background:var(--blue);border-radius:18px 18px 0 0; }
+  .card-label { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
+
+  .stream-box { background: #000; width: 100%; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .stream-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .stream-overlay { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; }
+  .stream-badge { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+  .badge-live { background: var(--red); color: #fff; animation: blink-bg 1.2s step-end infinite; }
+  @keyframes blink-bg { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .badge-res  { background: #dbd6d6d6; color: var(--dim); border: 1px solid var(--border); }
+
+  .stream-offline { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--dim); font-family: var(--mono); font-size: 12px; text-align: center; }
+  .cam-icon { font-size: 36px; opacity: .3; }
+
+  .controls { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .btn { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s; }
+  .btn:hover { background: var(--muted); border-color: var(--muted); }
+  .btn-red   { border-color: var(--red); color: var(--red); }
+  .btn-red:hover { background: #ff475718; }
+  .btn-green { border-color: var(--green); color: var(--green); }
+  .btn-green:hover { background: #2ed57318; }
+
+  .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+  .status-list { display: flex; flex-direction: column; gap: 8px; }
+  .status-item { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; }
+  .status-key { color: var(--dim); }
+  .status-val { font-weight: 600; }
+  .dot-green { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 5px; }
+  .dot-red   { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--red); margin-right: 5px; }
+
+  .snap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .snap-thumb { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; color: var(--dim); overflow: hidden; }
+  .snap-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+
+  .uptime-big { font-family: var(--mono); font-size: 32px; font-weight: 600; color: var(--green); }
+  .uptime-sub { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-top: 4px; letter-spacing: .1em; text-transform: uppercase; }
+</style>
+
+<div class="wrap">
+  <div class="header">
+    <div>
+      <div class="title-label">Sensor module</div>
+      <div class="title-main">ESP32-CAM</div>
+    </div>
+    <div class="live-pill"><span class="live-dot"></span> REC &nbsp;·&nbsp; <span id="clock">--:--:--</span></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Stream card -->
+    <div class="card">
+      <div class="card-top-red"></div>
+      <div class="stream-box" id="stream-box">
+        <div class="stream-offline">
+          <div class="cam-icon">📷</div>
+          <div>Fetching camera IP...</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="controls">
+          <button class="btn btn-green" onclick="startStream()">▶ Stream</button>
+          <button class="btn btn-red"   onclick="stopStream()">■ Stop</button>
+          <button class="btn"           onclick="takeSnapshot()">📷 Snapshot</button>
+          <button class="btn"           onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="right-col">
+
+      <!-- Camera status -->
+      <div class="card">
+        <div class="card-top-green"></div>
+        <div class="card-body">
+          <div class="card-label">Camera status</div>
+          <div class="status-list">
+            <div class="status-item">
+              <span class="status-key">Stream</span>
+              <span class="status-val" id="stat-stream"><span class="dot-red"></span>Offline</span>
+            </div>
+            <div class="status-item">
+              <span class="status-key">Resolution</span>
+              <span class="status-val" style="color:var(--blue)">QVGA 320×240</span>
+            </div>
+            <div class="status-item">
+              <span class="status-key">IP address</span>
+              <span class="status-val" id="cam-ip-display" style="color:var(--dim)">fetching...</span>
+            </div>
+            <div class="status-item">
+              <span class="status-key">Stream port</span>
+              <span class="status-val" style="color:var(--dim)">:81</span>
+            </div>
+            <div class="status-item">
+              <span class="status-key">Snapshots</span>
+              <span class="status-val" id="snap-count" style="color:var(--purple)">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Uptime -->
+      <div class="card">
+        <div class="card-top-blue"></div>
+        <div class="card-body">
+          <div class="card-label">Session uptime</div>
+          <div class="uptime-big" id="uptime">00:00:00</div>
+          <div class="uptime-sub">hh : mm : ss</div>
+        </div>
+      </div>
+
+      <!-- Snapshots -->
+      <div class="card">
+        <div class="card-top-blue"></div>
+        <div class="card-body">
+          <div class="card-label">Recent snapshots</div>
+          <div class="snap-grid" id="snap-grid">
+            <div class="snap-thumb">empty</div>
+            <div class="snap-thumb">empty</div>
+            <div class="snap-thumb">empty</div>
+            <div class="snap-thumb">empty</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  let CAM_IP   = null;
+  let STREAM   = null;
+  let SNAPSHOT = null;
+  let snapshots = [];
+  let snapCount = 0;
+  let startTime = Date.now();
+  let streaming = false;
+
+  // ─── Clock & Uptime ──────────────────────────────────────────
+  function tick() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
+  }
+  setInterval(tick, 1000);
+  tick();
+
+  // ─── Stream status ────────────────────────────────────────────
+  function setStreamStatus(online) {
+    const el = document.getElementById('stat-stream');
+    el.innerHTML = online
+      ? '<span class="dot-green"></span>Online'
+      : '<span class="dot-red"></span>Offline';
+  }
+
+  function showOffline() {
+    const label = CAM_IP ? `${CAM_IP}:81` : 'waiting for IP...';
+    document.getElementById('stream-box').innerHTML = `
+      <div class="stream-offline">
+        <div class="cam-icon">📷</div>
+        <div>Camera offline</div>
+        <div style="font-size:10px;margin-top:4px">${label}</div>
+      </div>`;
+    setStreamStatus(false);
+  }
+
+  // ─── Stream controls ──────────────────────────────────────────
+  function startStream() {
+    if (!STREAM) return;
+    document.getElementById('stream-box').innerHTML = `
+      <img id="stream-img" src="${STREAM}?t=${Date.now()}" alt="Live stream"
+           onerror="showOffline()" onload="setStreamStatus(true)">
+      <div class="stream-overlay">
+        <span class="stream-badge badge-live">● REC</span>
+        <span class="stream-badge badge-res">320×240</span>
+      </div>`;
+    streaming = true;
+  }
+
+  function stopStream() {
+    const img = document.getElementById('stream-img');
+    if (img) img.src = '';
+    setStreamStatus(false);
+    streaming = false;
+  }
+
+  function takeSnapshot() {
+    if (!SNAPSHOT) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const src = `${SNAPSHOT}?t=${Date.now()}`;
+    snapshots.unshift({ src, ts });
+    if (snapshots.length > 4) snapshots.pop();
+    snapCount++;
+    document.getElementById('snap-count').textContent = snapCount;
+    document.getElementById('snap-grid').innerHTML =
+      snapshots.map(s => `
+        <div class="snap-thumb">
+          <img src="${s.src}" alt="Snapshot ${s.ts}" onerror="this.parentElement.textContent='${s.ts}'">
+        </div>`).join('') +
+      Array(Math.max(0, 4 - snapshots.length)).fill('<div class="snap-thumb">empty</div>').join('');
+  }
+
+  function toggleFullscreen() {
+    const box = document.querySelector('.stream-box');
+    if (!document.fullscreenElement) box.requestFullscreen().catch(() => {});
+    else document.exitFullscreen();
+  }
+
+  // ─── Fetch cam IP from app.py ─────────────────────────────────
+  async function fetchCamIp() {
+    try {
+      const res = await fetch('/api/cam_ip');
+      const d   = await res.json();
+      if (d.ip && d.ip !== CAM_IP) {
+        CAM_IP   = d.ip;
+        STREAM   = `http://${CAM_IP}:81/stream`;
+        SNAPSHOT = `http://${CAM_IP}/capture`;
+        document.getElementById('cam-ip-display').textContent = CAM_IP;
+        if (!streaming) startStream();
+      }
+    } catch (e) {
+      console.warn('Could not get cam IP:', e);
+    }
+  }
+
+  fetchCamIp();
+  setInterval(fetchCamIp, 5000);
+</script>
+{% endblock %}

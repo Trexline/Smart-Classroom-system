@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account - IoT Dashboard{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="display-6 text-primary mb-2">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </div>
+                    <h2 class="fw-bold h4">Create Account</h2>
+                    <p class="text-muted small">Sign up to request dashboard access</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                  {% endfor %}
+                {% endwith %}
+
+                <form method="POST" id="signupForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Username</label>
+                        <input type="text" name="username" class="form-control" placeholder="Choose a username" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="name@example.com" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Password</label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Confirm Password</label>
+                        <input type="password" id="confirm_password" class="form-control" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <span id="msg" class="small fw-medium"></span>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-100 fs-6 fw-bold">
+                        Create Account
+                    </button>
+                </form>
+
+                <div class="text-center mt-4">
+                    <p class="small text-muted">Already have an account? <a href="{{ url_for('login') }}" class="text-decoration-none fw-bold">Sign In</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const pass = document.getElementById('password');
+    const conf = document.getElementById('confirm_password');
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('submitBtn');
+
+    function validate() {
+        if (conf.value === "") {
+            msg.innerText = "";
+            btn.disabled = false;
+        } else if (pass.value === conf.value) {
+            msg.innerHTML = '<i class="bi bi-check-circle-fill"></i> Passwords match';
+            msg.className = "small fw-medium text-success";
+            btn.disabled = false;
+        } else {
+            msg.innerHTML = '<i class="bi bi-x-circle-fill"></i> Passwords do not match';
+            msg.className = "small fw-medium text-danger";
+            btn.disabled = true;
+        }
+    }
+
+    pass.addEventListener('input', validate);
+    conf.addEventListener('input', validate);
+</script>
+{% endblock %}

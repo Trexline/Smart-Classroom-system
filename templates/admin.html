@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Control Center - IoT Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-0 px-md-4">
+    <!-- Top Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0 text-dark">Classroom Control Center</h1>
+            <p class="text-muted small mb-0">Logged in as: <span class="fw-bold text-primary">{{ session.username }}</span></p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                <i class="bi bi-broadcast me-1"></i> System Online
+            </span>
+        </div>
+    </div>
+
+    <!-- Row 1: Camera, Attendance and Current Status -->
+    <div class="row g-3 mb-4">
+        <!-- Live Video Feed -->
+        <div class="col-xl-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-camera-video text-danger me-2"></i>Live Stream</h5>
+                    <span class="badge bg-danger blink small">LIVE</span>
+                </div>
+                <div class="card-body p-0 bg-dark rounded-bottom-4 overflow-hidden d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                    <img id="camStream"
+                         src=""
+                         class="img-fluid w-100 h-100"
+                         style="object-fit: cover;"
+                         alt="Waiting for camera...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Students in Class -->
+        <div class="col-xl-2">
+            <div class="card border-0 shadow-sm rounded-4 bg-primary text-white h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
+                    <h6 class="text-uppercase small fw-bold opacity-75">Students in Class</h6>
+                    <h1 class="display-3 fw-bold my-1" id="liveCount">{{ live_count if live_count is not none else 0 }}</h1>
+                    <form action="{{ url_for('end_session') }}" method="POST" class="mt-3 w-100">
+                        <button type="submit" class="btn btn-light w-100 rounded-pill fw-bold text-primary shadow-sm btn-sm py-2">
+                            <i class="bi bi-stop-circle-fill me-1"></i>End Session
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Status -->
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-cpu text-primary me-2"></i>Current Status</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-danger-subtle text-danger rounded-3 p-2 me-3"><i class="bi bi-thermometer-half fs-5"></i></div>
+                                <span class="fw-medium">Temperature</span>
+                            </div>
+                            <span class="h5 fw-bold mb-0" id="detailTemp">--°C</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-info-subtle text-info rounded-3 p-2 me-3"><i class="bi bi-droplet-fill fs-5"></i></div>
+                                <span class="fw-medium">Humidity</span>
+                            </div>
+                            <span class="h5 fw-bold mb-0" id="detailHum">--%</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-warning-subtle text-warning rounded-3 p-2 me-3"><i class="bi bi-brightness-high fs-5"></i></div>
+                                <span class="fw-medium">LDR (Light)</span>
+                            </div>
+                            <span class="h5 fw-bold mb-0" id="detailLdr">--%</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-secondary-subtle text-secondary rounded-3 p-2 me-3"><i class="bi bi-arrows-expand fs-5"></i></div>
+                                <span class="fw-medium">Distance</span>
+                            </div>
+                            <span class="h5 fw-bold mb-0" id="detailDist">-- cm</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-primary-subtle text-primary rounded-3 p-2 me-3"><i class="bi bi-person-walking fs-5"></i></div>
+                                <span class="fw-medium">PIR Motion</span>
+                            </div>
+                            <span class="badge rounded-pill px-3 py-2 bg-secondary" id="detailPir">No Motion</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-graph-up text-success me-2"></i>
+                Sensor Analytics (Last 20 Readings)
+            </h5>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 small">
+                <i class="bi bi-arrow-repeat me-1"></i> Live
+            </span>
+        </div>
+        <div class="card-body p-2">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2 align-items-stretch">
+                <div class="col">
+                    <div class="chart-card">
+                        <h6 class="chart-title">Temperature (°C)</h6>
+                        <div class="chart-container"><canvas id="tempChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="chart-card">
+                        <h6 class="chart-title">Humidity (%)</h6>
+                        <div class="chart-container"><canvas id="humChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="chart-card">
+                        <h6 class="chart-title">Light Intensity (%)</h6>
+                        <div class="chart-container"><canvas id="ldrChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="chart-card">
+                        <h6 class="chart-title">Distance (cm)</h6>
+                        <div class="chart-container"><canvas id="distChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="chart-card">
+                        <h6 class="chart-title">PIR Activity</h6>
+                        <div class="chart-container"><canvas id="pirChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User & Role Management -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white py-3 border-0">
+            <h5 class="mb-0 fw-bold">Student Role Assignment</h5>
+            <p class="text-muted small mb-0">Assign or revoke sensor dashboard access</p>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr class="small text-uppercase">
+                            <th class="ps-4">User</th>
+                            <th class="text-center">Current Role</th>
+                            <th class="text-center">Assign Role</th>
+                            <th class="text-center">Revoke</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold">{{ user.username }}</div>
+                                <div class="small text-muted">{{ user.email }}</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill px-3 py-2
+                                    {% if user.role == 'pending' %}bg-secondary
+                                    {% elif user.role == 'admin' %}bg-danger
+                                    {% else %}bg-primary{% endif %}">
+                                    {{ user.role }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <form action="{{ url_for('assign_role') }}" method="POST" class="d-flex justify-content-center gap-2">
+                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                                    <select name="role" class="form-select form-select-sm" style="max-width: 140px;">
+                                        {% for role in roles %}
+                                        <option value="{{ role }}" {{ 'selected' if user.role == role }}>{{ role }}</option>
+                                        {% endfor %}
+                                        <option value="pending" {{ 'selected' if user.role == 'pending' }}>pending</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm px-3 rounded-pill">Update</button>
+                                </form>
+                            </td>
+                            <td class="text-center">
+                                <form action="{{ url_for('revoke_permission', user_id=user.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm px-3 rounded-pill">Revoke</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .blink { animation: blinker 1.5s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0; } }
+    .icon-box { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+    .row.row-cols-1.row-cols-md-2.row-cols-lg-3 { align-items: stretch; }
+    .chart-card { display: flex; flex-direction: column; height: 260px; padding: 6px; }
+    .chart-title { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; text-align: center; margin-bottom: 4px; color: #6c757d; }
+    .chart-container { flex-grow: 1; position: relative; width: 100%; }
+    .chart-container canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
+    canvas { display: block; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const initTemp = JSON.parse('{{ temp_history|tojson|safe }}');
+    const initHum  = JSON.parse('{{ hum_history|tojson|safe }}');
+    const initLdr  = JSON.parse('{{ ldr_history|tojson|safe }}');
+    const initDist = JSON.parse('{{ dist_history|tojson|safe }}');
+    const initPir  = JSON.parse('{{ pir_history|tojson|safe }}');
+
+    function makeLabels(len) {
+        const now = Date.now();
+        return Array.from({ length: len }, (_, i) => {
+            const t = new Date(now - (len - i) * 2000);
+            return t.getHours().toString().padStart(2,'0') + ':' +
+                   t.getMinutes().toString().padStart(2,'0') + ':' +
+                   t.getSeconds().toString().padStart(2,'0');
+        });
+    }
+
+    function createChart(canvasId, label, color, data) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        return new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: makeLabels(data.length),
+                datasets: [{
+                    label: label,
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: color + '22',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 1.5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 300 },
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        display: true,
+                        ticks: {
+                            maxTicksLimit: 5,
+                            maxRotation: 0,
+                            font: { size: 9 },
+                            color: '#6c757d'
+                        },
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { maxTicksLimit: 4 }
+                    }
+                }
+            }
+        });
+    }
+
+    const charts = {
+        temp: createChart('tempChart', 'Temp',     '#dc3545', initTemp),
+        hum:  createChart('humChart',  'Humidity', '#0dcaf0', initHum),
+        ldr:  createChart('ldrChart',  'LDR',      '#ffc107', initLdr),
+        dist: createChart('distChart', 'Distance', '#6c757d', initDist),
+        pir:  createChart('pirChart',  'PIR',      '#0d6efd', initPir),
+    };
+
+    function updateChart(chart, newData) {
+        chart.data.labels = makeLabels(newData.length);
+        chart.data.datasets[0].data = newData;
+        chart.update('none');
+    }
+
+    function val(v, suffix) {
+        return v !== null && v !== undefined ? v + suffix : '--';
+    }
+
+    function updatePirBadge(el, isDetected) {
+        el.textContent = isDetected ? 'Detected' : 'No Motion';
+        el.className = 'badge rounded-pill px-3 py-2 ' + (isDetected ? 'bg-success' : 'bg-secondary');
+    }
+
+    // ─── Camera Stream ────────────────────────────────────────────
+    let camIp = null;
+    let streaming = false;
+
+    function refreshFrame() {
+        if (!camIp) return;
+        const img = document.getElementById('camStream');
+        const newImg = new Image();
+        newImg.onload = function() {
+            img.src = this.src;
+            if (streaming) setTimeout(refreshFrame, 150);
+        };
+        newImg.onerror = function() {
+            if (streaming) setTimeout(refreshFrame, 500);
+        };
+        newImg.src = 'http://' + camIp + '/capture?' + Date.now();
+    }
+
+    async function updateCamIp() {
+        try {
+            const res = await fetch('/api/cam_ip');
+            const d   = await res.json();
+            if (d.ip && d.ip !== camIp) {
+                camIp = d.ip;
+                if (!streaming) {
+                    streaming = true;
+                    refreshFrame();
+                }
+            }
+        } catch(e) {
+            console.warn('Could not get cam IP:', e);
+        }
+    }
+
+    updateCamIp();
+    setInterval(updateCamIp, 5000);
+
+    // ─── Sensor Live Data ─────────────────────────────────────────
+    async function fetchLiveData() {
+        try {
+            const res = await fetch('/api/sensor_live');
+            if (!res.ok) return;
+            const d = await res.json();
+
+            const s = d.sensor || {};
+
+            // ✅ ldr is already stored as % — use directly, no conversion
+            document.getElementById('detailTemp').textContent = val(s.temp, '°C');
+            document.getElementById('detailHum').textContent  = val(s.hum,  '%');
+            document.getElementById('detailLdr').textContent  = val(s.ldr,  '%');
+            document.getElementById('detailDist').textContent = s.dist !== null && s.dist !== undefined ? s.dist + ' cm' : '-- cm';
+            document.getElementById('liveCount').textContent  = d.live_count ?? 0;
+
+            updatePirBadge(document.getElementById('detailPir'), s.pir === 1);
+
+            // ✅ ldr_history is already in % — no mapping needed
+            if (d.temp_history) updateChart(charts.temp, d.temp_history);
+            if (d.hum_history)  updateChart(charts.hum,  d.hum_history);
+            if (d.ldr_history)  updateChart(charts.ldr,  d.ldr_history);
+            if (d.dist_history) updateChart(charts.dist, d.dist_history);
+            if (d.pir_history)  updateChart(charts.pir,  d.pir_history);
+
+        } catch (e) {
+            console.warn('Live update failed:', e);
+        }
+    }
+
+    setInterval(fetchLiveData, 1000);
+    fetchLiveData();
+</script>
+{% endblock %}

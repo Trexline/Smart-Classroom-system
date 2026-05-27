@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    /* 1. Improved Grid Control */
+    .grid-container { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); 
+        gap: 2rem; 
+        width: 100%;
+        margin: 0 auto; 
+        box-sizing: border-box; 
+    }
+
+    /* 2. Enhanced Glassmorphism */
+    .card { 
+        padding: 2rem; 
+        background: rgba(255, 255, 255, 0.03); 
+        backdrop-filter: blur(1.5rem); 
+        -webkit-backdrop-filter: blur(1.5rem);
+        border-radius: 1.5rem; 
+        border: 1px solid rgba(255, 255, 255, 0.08); 
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.4); 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Subtle Shine Overlay */
+    .card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(0, 255, 136, 0.3);
+    }
+
+    /* 3. Camera Section - Modern "Monitor" Look */
+    .camera-card { 
+        grid-column: 1 / -1; 
+    }
+
+    .video-container { 
+        width: 100%; 
+        max-width: 38rem; 
+        aspect-ratio: 16 / 9;
+        border-radius: 1rem; 
+        background: #000; 
+        overflow: hidden; 
+        border: 3px solid rgba(15, 23, 42, 0.8);
+        box-shadow: inset 0 0 2rem rgba(0, 255, 136, 0.1), 0 0.5rem 2rem rgba(0,0,0,0.5);
+        position: relative;
+    }
+
+    #cam-stream { width: 100%; height: 100%; object-fit: cover; }
+
+    /* 4. Indicators & Typography */
+    .status-container { 
+        display: flex; 
+        align-items: center; 
+        gap: 0.75rem; 
+        font-size: 0.85rem; 
+        margin-bottom: 1.5rem; 
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05rem;
+    }
+    
+    .dot { height: 0.75rem; width: 0.75rem; border-radius: 50%; background: #444; position: relative; }
+    .online { background: #00ff88; box-shadow: 0 0 1rem #00ff88; }
+    .offline { background: #ff4d4d; box-shadow: 0 0 1rem #ff4d4d; }
+
+    h3 { 
+        margin: 0 0 1.5rem 0; 
+        font-size: 1rem; 
+        color: rgba(255,255,255,0.6); 
+        text-transform: uppercase; 
+        letter-spacing: 0.2rem; 
+        width: 100%; 
+    }
+    
+    /* Stats List Styling */
+    .stats-card p { 
+        width: 100%;
+        max-width: 18rem; 
+        margin: 0.8rem 0; 
+        font-size: 1.05rem; 
+        color: rgba(255,255,255,0.9); 
+        border-bottom: 1px solid rgba(255,255,255,0.05); 
+        padding-bottom: 0.6rem; 
+        display: flex; 
+        justify-content: space-between; 
+    }
+
+    .stats-card p span { color: rgba(255,255,255,0.5); font-size: 0.9rem; }
+
+    /* 5. Threshold Inputs - Interactive Fields */
+    .input-group { 
+        background: rgba(0, 0, 0, 0.2); 
+        padding: 1rem; 
+        border-radius: 1rem; 
+        margin-bottom: 1rem; 
+        border: 1px solid rgba(255, 255, 255, 0.05); 
+        width: 100%;
+        max-width: 18rem; 
+    }
+    
+    .threshold-label { font-size: 0.7rem; color: var(--primary); margin-bottom: 0.75rem; display: block; font-weight: 700; text-transform: uppercase; }
+    
+    .input-wrapper { display: flex; justify-content: space-evenly; align-items: center; }
+
+    .threshold-input { 
+        width: 4.5rem; 
+        background: #000; 
+        color: #fff; 
+        border: 1px solid #333; 
+        border-radius: 0.5rem; 
+        padding: 0.4rem; 
+        text-align: center; 
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        outline: none;
+    }
+    
+    .threshold-input:focus { border-color: var(--primary); }
+
+    .btn-reset { 
+        margin-top: 1rem; 
+        padding: 1rem; 
+        border-radius: 0.75rem; 
+        background: rgba(255, 77, 77, 0.1); 
+        color: #ff4d4d; 
+        font-weight: 700; 
+        border: 1px solid rgba(255, 77, 77, 0.2); 
+        cursor: pointer; 
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        width: 100%;
+        max-width: 18rem;
+    }
+    
+    .btn-reset:hover { 
+        background: #ff4d4d; 
+        color: #fff; 
+        box-shadow: 0 0 1.5rem rgba(255, 77, 77, 0.4); 
+    }
+
+    @media (max-width: 48rem) {
+        .grid-container { grid-template-columns: 1fr; }
+        .camera-card { grid-column: span 1; }
+    }
+</style>
+
+<div class="grid-container">
+    <div class="card camera-card">
+        <div class="status-container">
+            <div id="status-dot" class="dot"></div>
+            <span id="status-text">Connecting...</span>
+        </div>
+        <div class="video-container">
+            <img id="cam-stream" src="/video_feed" alt="Camera Feed">
+        </div>
+    </div>
+
+    <div class="card stats-card">
+        <h3>Environment</h3>
+        <p><span>🌡️ Temperature</span> <strong id="temp">--</strong></p>
+        <p><span>💧 Humidity</span> <strong id="hum">--</strong></p>
+        <p><span>💡 Light Level</span> <strong id="ldrvalue">--</strong></p>
+        <p><span>📏 Proximity</span> <strong id="distance">--</strong></p>
+        <p><span>🏃 Motion State</span> <strong id="motionStatus">--</strong></p>
+        <p><span>🚨 Session Hits</span> <strong id="motion-count" style="color: #00ff88; font-size: 1.2rem;">0</strong></p> 
+        <button onclick="resetCounter()" class="btn-reset">Reset Session</button>
+    </div>
+
+    <div class="card settings-card">
+        <h3>Thresholds</h3>
+        
+        <div class="input-group">
+            <span class="threshold-label">Temp Range (°C)</span>
+            <div class="input-wrapper">
+                <input type="number" id="min-temp" class="threshold-input" value="18">
+                <span style="color:#555">/</span>
+                <input type="number" id="max-temp" class="threshold-input" value="30">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <span class="threshold-label">Humidity (%)</span>
+            <div class="input-wrapper">
+                <input type="number" id="min-hum" class="threshold-input" value="30">
+                <span style="color:#555">/</span>
+                <input type="number" id="max-hum" class="threshold-input" value="65">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <span class="threshold-label">Light Range</span>
+            <div class="input-wrapper">
+                <input type="number" id="min-ldr" class="threshold-input" value="500">
+                <span style="color:#555">/</span>
+                <input type="number" id="max-ldr" class="threshold-input" value="3500">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const cam = document.getElementById('cam-stream');
+    cam.onerror = () => { setTimeout(() => { cam.src = "/video_feed?t=" + Date.now(); }, 3000); };
+
+    setInterval(async () => {
+        try {
+            const response = await fetch('/get_sensors');
+            const data = await response.json();
+
+            updateMetric('temp', data.temp, 'min-temp', 'max-temp', '°C');
+            updateMetric('hum', data.hum, 'min-hum', 'max-hum', '%');
+            updateMetric('ldrvalue', data.ldrvalue, 'min-ldr', 'max-ldr', '');
+            
+            document.getElementById('distance').innerText = data.distance + " cm";
+            document.getElementById('motion-count').innerText = data.motion_count;
+
+            const mStatus = document.getElementById('motionStatus');
+            const statusTxt = String(data.motionStatus || "Clear");
+            mStatus.innerText = statusTxt;
+            mStatus.style.color = statusTxt.toLowerCase().includes("motion") ? "#ff4d4d" : "#00ff88";
+
+            const dot = document.getElementById('status-dot');
+            const stext = document.getElementById('status-text');
+            if (data.online) {
+                dot.className = "dot online";
+                stext.innerText = "System Online";
+                stext.style.color = "#00ff88";
+            } else {
+                dot.className = "dot offline";
+                stext.innerText = "System Offline";
+                stext.style.color = "#ff4d4d";
+            }
+        } catch (err) {}
+    }, 1000);
+
+    function updateMetric(id, val, minId, maxId, unit) {
+        const el = document.getElementById(id);
+        const v = parseFloat(val);
+        const min = parseFloat(document.getElementById(minId).value);
+        const max = parseFloat(document.getElementById(maxId).value);
+        el.innerText = val + " " + unit;
+        el.style.color = (v < min || v > max) ? "#ff4d4d" : "#00ff88";
+    }
+
+    async function resetCounter() {
+        if (!confirm("Reset session?")) return;
+        await fetch('/reset_counter', { method: 'POST' });
+    }
+</script>
+{% endblock %}
