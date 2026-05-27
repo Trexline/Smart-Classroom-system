@@ -1,0 +1,9 @@
+# Ignore the local database
+*.db
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore uploaded captures (optional - keep if you want history on GitHub)
+static/captures/*.jpg
